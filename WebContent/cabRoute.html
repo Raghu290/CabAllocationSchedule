@@ -1,0 +1,64 @@
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title> Cab Route Display </title>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="js/jquery-2.1.0.min.js"></script>                
+
+        <link rel="stylesheet" href="css/leaflet.css?v=0.7.3" />
+        <script type="text/javascript" src="js/leaflet.js?v=0.7.3"></script>        
+
+        <link rel="stylesheet" href="css/style.css" />
+
+        <script type="text/javascript" src="js/bouncemarker.js"></script>
+
+        <script type="text/javascript" src="js/GHUtil.js"></script>
+        <script type="text/javascript" src="js/GraphHopperRouting.js"></script>
+       <!--  <script type="text/javascript" src="js/GraphHopperOptimization.js?v=2"></script> -->
+        <script type="text/javascript" src="js/demo.js?v=2"></script>
+    </head>
+    <body>        
+        <div id="main">
+          <!--   <div id="logo" class="left">
+                <a href="https://graphhopper.com">
+                    <img src="https://graphhopper.com/img/header.png" alt="GraphHopper Logo"/>                                   
+                </a>
+            </div>    -->                     
+  
+            <h2 class="left">Cab Route Allocation</h2>
+
+            <div class="clear"></div>
+            <div class="horizontal">                
+                <ul id="mynavigation" class="tabs-menu">
+                  <li class="current"><a href="#optimization">Cab Optimized Route Display</a></li>
+                                   
+                </ul>                
+            </div>
+
+
+            <div id="optimization" class="tab-content">
+              
+
+                <div id="button-list" class="right">
+                   <!--  vehicles:
+                    <input id="optimize_vehicles" style="max-width: 60px" type="number" min="1" max="4" value="2"/> -->
+                    <button id="optimize_button">Cab Route</button>
+                    <button id="vrp_clear_button">Clear</button>
+                </div>
+                   <div id="somediv"></div>
+                <div class="clear"></div>
+                <div id="vrp-map-wrapper">
+                    <div id="vrp-map" style="cursor: default; height:550px; width: 600px;"></div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <div id="vrp-error" style="float: right; padding-left: 20px;">
+                </div>
+
+                <div id="vrp-response" style="float: right; padding-left: 20px;">
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
