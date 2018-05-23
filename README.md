@@ -5,4 +5,5 @@ https://github.com/graphhopper/graphhopper/blob/master/docs/core/quickstart-from
 
 You have created your public key in omniscale use it for tiles from server.
 
-
+start graphopper server
+./graphhopper.sh -a web -i hyderabad.osm.pbf
