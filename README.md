@@ -354,3 +354,368 @@ TigerGraph could be very powerful, especially for deep hierarchical queries and 
 Use the GraphRAG Toolkit (AWS) or similar as part of your pipeline to handle indexing + query logic, so you don’t reinvent everything.
 
 Use or adapt components from LangChain / LlamaIndex, in particular the part that generates graph queries (Cypher or equivalent) from natural language, and that manages both graph and vector retrieval.
+
+
+
+
+Pometry Temporal Graph
+
+1. Overview
+
+This document explains how a temporal graph platform like Pometry can support:
+
+Natural Language Query (NLQ)
+
+Vector Embedding & Semantic Search
+
+Temporal Graph Traversal
+
+GraphQL API Access
+
+Fine-Grained Entitlements
+
+Field-Level Masking
+
+Edge-Level Access Control
+
+Time-Bound Authorization
+
+Two complete use cases are covered:
+
+Non-Fine-Grained Access
+
+Fine-Grained Access Control
+
+2. Core Architecture Components
+2.1 Natural Language to Graph Flow
+User Question
+    ↓
+LLM
+    ↓
+Vector Embedding
+    ↓
+Semantic Search (Top-K Nodes)
+    ↓
+GraphQL Traversal
+    ↓
+Temporal Filtering
+    ↓
+Optional LLM Summarization
+    ↓
+Response
+
+2.2 Key Capabilities
+Vector Embedding
+
+Convert NLQ into vector representation
+
+Store embeddings on nodes
+
+Use cosine similarity or ANN index
+
+Retrieve semantically related nodes
+
+Temporal Graph
+
+Each:
+
+Node has valid_from / valid_to
+
+Edge has valid_from / valid_to
+
+Queries support time windows
+
+GraphQL API
+
+GraphQL is used to:
+
+Query nodes
+
+Traverse relationships
+
+Apply filters
+
+Enforce entitlements
+
+Control returned fields
+
+3. Use Case 1 — NLQ/Semantic/Graphql/Temporal
+3.1 Scenario
+
+User asks:
+
+“Show me accounts with fraud-like behavior connected to Company X in the last 30 days.”
+
+In this case:
+
+No user-specific filtering
+
+No field masking
+
+All accessible graph data returned
+
+3.2 Processing Flow
+
+NLQ converted to embedding
+
+Semantic search retrieves relevant accounts
+
+GraphQL fetches connected companies
+
+Temporal filter: last 30 days
+
+Return full data
+
+3.3 Semantic Search Query
+query SemanticSearch(
+  $embedding: [Float!]!,
+  $topK: Int = 10,
+  $startTime: String!,
+  $endTime: String!
+) {
+  semanticSearch(
+    embedding: $embedding
+    topK: $topK
+    filter: {
+      timestamp: { after: $startTime, before: $endTime }
+    }
+  ) {
+    nodeId
+    score
+    properties {
+      name
+      type
+      behavior
+      timestamp
+    }
+  }
+}
+
+3.4 Graph Traversal Query
+query GraphContext(
+  $nodeIds: [ID!]!,
+  $startTime: String!,
+  $endTime: String!
+) {
+  nodes(ids: $nodeIds) {
+    id
+    name
+    type
+    properties {
+      behavior
+      riskScore
+      lastActivity
+    }
+    connectedEntities(
+      filter: {
+        relationship: {
+          valid_from: { after: $startTime }
+          valid_to: { before: $endTime }
+        }
+      }
+    ) {
+      id
+      name
+      type
+      relationship {
+        type
+        valid_from
+        valid_to
+      }
+    }
+  }
+}
+
+3.5 Characteristics
+
+No department restriction
+
+No role filtering
+
+No property masking
+
+Full visibility within time window
+
+4. Use Case 2 — Fine-Grained Entitlements
+4.1 Scenario
+
+Same question, but user access is restricted by:
+
+Department
+
+Role
+
+Edge Type
+
+Time Window
+
+Field-Level Visibility
+
+5. Fine-Grained Entitlement Model
+5.1 Node-Level Filtering
+
+User can only see:
+
+node.department == user.department
+
+5.2 Edge-Level Filtering
+
+User can only traverse:
+
+relationship.type == "Approved"
+
+5.3 Temporal Entitlement
+
+User access limited to:
+
+relationship.valid_from >= user.access_start
+relationship.valid_to <= user.access_end
+
+5.4 Field-Level Masking
+
+Sensitive properties hidden unless:
+
+user.role == "analyst"
+
+6. Fine-Grained Semantic Search Query
+query SemanticSearch(
+  $embedding: [Float!]!,
+  $topK: Int = 10,
+  $startTime: String!,
+  $endTime: String!,
+  $userDept: String!,
+  $userRole: String!
+) {
+  semanticSearch(
+    embedding: $embedding
+    topK: $topK
+    filter: {
+      timestamp: { after: $startTime, before: $endTime }
+      properties: { department: $userDept }
+    }
+  ) {
+    nodeId
+    score
+    properties {
+      name
+      type
+      behavior @include(if: $userRole == "analyst")
+      riskScore @include(if: $userRole == "analyst")
+      timestamp
+    }
+  }
+}
+
+7. Fine-Grained Graph Traversal
+query GraphContext(
+  $nodeIds: [ID!]!,
+  $startTime: String!,
+  $endTime: String!,
+  $userDept: String!,
+  $userRole: String!
+) {
+  nodes(ids: $nodeIds) {
+    id
+    name
+    type
+    properties {
+      department
+      behavior @include(if: $userRole == "analyst")
+      riskScore @include(if: $userRole == "analyst")
+    }
+    connectedEntities(
+      filter: {
+        properties: { department: $userDept }
+        relationship: {
+          type: "Approved"
+          valid_from: { after: $startTime }
+          valid_to: { before: $endTime }
+        }
+      }
+    ) {
+      id
+      name
+      type
+      relationship {
+        type
+        valid_from
+        valid_to
+      }
+    }
+  }
+}
+
+8. Fine-Grained Architecture Flow
+User NLQ
+    ↓
+Authentication
+    ↓
+Load User Entitlements
+    ↓
+LLM → Vector Embedding
+    ↓
+Semantic Search (Department Filter Applied)
+    ↓
+GraphQL Traversal (Edge + Time + Dept Filters)
+    ↓
+Field Masking (Role-Based)
+    ↓
+Merge + Rank
+    ↓
+Optional LLM Summary
+    ↓
+Final Response
+
+9. Comparison Summary
+Feature	Non-Fine-Grained	Fine-Grained
+Department Filtering	❌	✅
+Role-Based Masking	❌	✅
+Edge-Type Filtering	❌	✅
+Temporal Access Limits	Basic	User-Specific
+Field-Level Security	❌	✅
+GraphQL Filtering	Basic	Entitlement-Aware
+10. Enterprise Considerations
+
+For production systems:
+
+Push entitlements into GraphQL resolvers
+
+Apply filters server-side (never client-side)
+
+Use row-level security at DB layer
+
+Use policy engine (OPA, ABAC, RBAC hybrid)
+
+Log entitlement decisions for audit
+
+Cache user policy context per session
+
+11. Conclusion
+
+Pometry-style temporal graph architecture supports:
+
+Time-aware graph modeling
+
+Vector-based semantic retrieval
+
+GraphQL-based traversal
+
+Enterprise-grade fine-grained entitlements
+
+Field-level masking
+
+Edge-level restrictions
+
+Time-bound authorization
+
+This enables secure, explainable, and context-aware graph querying suitable for:
+
+Fraud detection
+
+Risk intelligence
+
+Supply chain analysis
+
+Regulatory audit
+
+Investigations
